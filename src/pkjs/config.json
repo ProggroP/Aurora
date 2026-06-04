@@ -1,0 +1,82 @@
+[
+  { "type": "heading", "defaultValue": "Aurora" },
+  {
+    "type": "text",
+    "defaultValue": "Weather via Open-Meteo. Location automatic or fixed."
+  },
+  {
+    "type": "section",
+    "items": [
+      { "type": "heading", "defaultValue": "General" },
+      {
+        "type": "select",
+        "messageKey": "LANG",
+        "label": "Language",
+        "defaultValue": 0,
+        "options": [
+          { "label": "English", "value": 0 },
+          { "label": "Deutsch", "value": 1 },
+          { "label": "Francais", "value": 2 },
+          { "label": "Espanol", "value": 3 },
+          { "label": "Italiano", "value": 4 },
+          { "label": "Nederlands", "value": 5 }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      { "type": "heading", "defaultValue": "Colors" },
+      {
+        "type": "color",
+        "messageKey": "HOUR_COLOR",
+        "label": "Hours",
+        "defaultValue": "0xFFFFFF",
+        "sunlight": false
+      },
+      {
+        "type": "color",
+        "messageKey": "MIN_COLOR",
+        "label": "Minutes",
+        "defaultValue": "0x00FFAA",
+        "sunlight": false
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      { "type": "heading", "defaultValue": "Weather" },
+      {
+        "type": "toggle",
+        "messageKey": "TEMP_FAHRENHEIT",
+        "label": "Use Fahrenheit",
+        "defaultValue": false
+      },
+      {
+        "type": "toggle",
+        "messageKey": "USE_FIXED_LOC",
+        "label": "Use fixed location",
+        "defaultValue": false
+      },
+      {
+        "type": "input",
+        "messageKey": "FIXED_LAT",
+        "label": "Latitude",
+        "defaultValue": "53.75",
+        "description": "Decimal degrees. North positive, south negative.",
+        "attributes": { "type": "number", "step": "0.01", "min": "-90", "max": "90" }
+      },
+      {
+        "type": "input",
+        "messageKey": "FIXED_LON",
+        "label": "Longitude",
+        "defaultValue": "9.65",
+        "description": "Decimal degrees. East positive, west negative.",
+        "attributes": { "type": "number", "step": "0.01", "min": "-180", "max": "180" }
+      }
+    ]
+  },
+  { "type": "submit", "defaultValue": "Save" }
+]

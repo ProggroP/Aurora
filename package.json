@@ -1,0 +1,65 @@
+{
+    "author": "Axel",
+    "dependencies": {
+        "@rebble/clay": "1.0.8"
+    },
+    "keywords": [
+        "pebble-app"
+    ],
+    "name": "aurora",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "configurable",
+            "health"
+        ],
+        "displayName": "Aurora",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "REQUEST_UPDATE",
+            "WEATHER_ICON",
+            "WEATHER_HIGH",
+            "WEATHER_LOW",
+            "HOUR_COLOR",
+            "MIN_COLOR",
+            "TEMP_FAHRENHEIT",
+            "USE_FIXED_LOC",
+            "FIXED_LAT",
+            "FIXED_LON",
+            "LANG"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "characterRegex": "[0-9]",
+                    "file": "fonts/Eurostile LT Std Demi.ttf",
+                    "name": "EUROSTILE_DEMI_92",
+                    "targetPlatforms": [
+                        "gabbro"
+                    ],
+                    "type": "font"
+                },
+                {
+                    "characterRegex": "[0-9]",
+                    "file": "fonts/Eurostile LT Std Demi.ttf",
+                    "name": "EUROSTILE_DEMI_64",
+                    "targetPlatforms": [
+                        "chalk"
+                    ],
+                    "type": "font"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "chalk",
+            "gabbro"
+        ],
+        "uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.0.0"
+}
