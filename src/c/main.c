@@ -13,7 +13,7 @@
  *  - Schrittzahl fest auf 20000
  *  - Hoechsttemperatur fest auf -23
  */
-#define DEBUG_MODE 
+// #define DEBUG_MODE 
 
 /* ---------- COLORS ---------- */
 #define COLOR_BG        GColorBlack
@@ -49,7 +49,7 @@
   #define HIGH_BOX   GRect(90, 130, 70, 22)
   #define TEMP_ALIGN GTextAlignmentRight
 
-  #define SLBL_BOX   GRect(0, 142, 180, 18)
+  #define SLBL_BOX   GRect(0, 138, 180, 18)
   #define SVAL_BOX   GRect(0, 152, 180, 22)
 #else
   /* Gabbro (Pebble Round 2) - Default */
@@ -73,7 +73,7 @@
   #define HIGH_BOX   GRect(150, 184, 78, 30)
   #define TEMP_ALIGN GTextAlignmentRight
 
-  #define SLBL_BOX   GRect(0, 204, 260, 22)
+  #define SLBL_BOX   GRect(0, 200, 260, 22)
   #define SVAL_BOX   GRect(0, 222, 260, 30)
 #endif
 
@@ -83,6 +83,7 @@
   #define RES_TIME RESOURCE_ID_EUROSTILE_DEMI_92
 #endif
 
+ 
 /* ---------- WEATHER ICON TYPES ---------- */
 #define WX_CLEAR   0
 #define WX_PARTLY  1
@@ -92,7 +93,7 @@
 #define WX_THUNDER 5
 #define WX_FOG     6
 #define WX_COUNT   7
-
+ 
 /* ---------- LANGUAGES ---------- */
 #define LANG_EN    0
 #define LANG_DE    1
@@ -101,7 +102,7 @@
 #define LANG_IT    4
 #define LANG_NL    5
 #define LANG_COUNT 6
-
+ 
 /* ---------- PERSIST KEYS ---------- */
 #define PK_ICON 1
 #define PK_HIGH 2
@@ -109,11 +110,12 @@
 #define PK_HCOL 4
 #define PK_MCOL 5
 #define PK_LANG 6
-
+#define PK_H24  7
+ 
 /* ---------- STATE ---------- */
 static Window  *s_window;
 static Layer   *s_canvas;
-
+ 
 static char s_hour[4];
 static char s_min[4];
 static char s_dow[6];
@@ -122,19 +124,20 @@ static char s_mon[6];
 static char s_steps[8];
 static char s_low[8];
 static char s_high[8];
-
+ 
 static int  s_weather_icon = WX_PARTLY;
 static int  s_weather_high = 0;
 static int  s_weather_low  = 0;
 static bool s_have_weather = false;
-
+ 
 static int  s_hour_hex = DEFAULT_HOUR_HEX;
 static int  s_min_hex  = DEFAULT_MIN_HEX;
-
+ 
 static int  s_lang = LANG_EN;
-
+static bool s_hour_24 = true;
+ 
 static GFont s_font_time;
-
+ 
 /* Wochentage 2-stellig, Index = tm_wday (0 = Sonntag) */
 static const char *DOW_TBL[LANG_COUNT][7] = {
   {"Su","Mo","Tu","We","Th","Fr","Sa"},       /* EN */
@@ -144,7 +147,7 @@ static const char *DOW_TBL[LANG_COUNT][7] = {
   {"Do","Lu","Ma","Me","Gi","Ve","Sa"},       /* IT */
   {"Zo","Ma","Di","Wo","Do","Vr","Za"},       /* NL */
 };
-
+ 
 /* Monate 3-stellig, Index = tm_mon (0 = Januar) */
 static const char *MON_TBL[LANG_COUNT][12] = {
   {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"},                /* EN */
@@ -154,7 +157,7 @@ static const char *MON_TBL[LANG_COUNT][12] = {
   {"Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"},                /* IT */
   {"Jan","Feb","Mrt","Apr","Mei","Jun","Jul","Aug","Sep","Okt","Nov","Dec"},                /* NL */
 };
-
+ 
 /* Schritte-Label je Sprache */
 static const char *STEPS_TBL[LANG_COUNT] = {
   "Steps",     /* EN */
@@ -164,11 +167,11 @@ static const char *STEPS_TBL[LANG_COUNT] = {
   "Passi",     /* IT */
   "Stappen",   /* NL */
 };
-
+ 
 /* ========================================================================= */
 /* Wetter-Icons (rein gezeichnet, keine Bitmap-Ressourcen)                   */
 /* ========================================================================= */
-
+ 
 static void draw_sun(GContext *ctx, GPoint c, int r, GColor color) {
   graphics_context_set_fill_color(ctx, color);
   graphics_context_set_stroke_color(ctx, color);
@@ -183,7 +186,7 @@ static void draw_sun(GContext *ctx, GPoint c, int r, GColor color) {
     graphics_draw_line(ctx, GPoint(x1, y1), GPoint(x2, y2));
   }
 }
-
+ 
 static void draw_cloud(GContext *ctx, GPoint c, GColor color) {
   graphics_context_set_fill_color(ctx, color);
   graphics_fill_circle(ctx, GPoint(c.x - 8, c.y + 1), 7);
@@ -191,7 +194,7 @@ static void draw_cloud(GContext *ctx, GPoint c, GColor color) {
   graphics_fill_circle(ctx, GPoint(c.x + 10, c.y + 1), 7);
   graphics_fill_rect(ctx, GRect(c.x - 14, c.y, 28, 9), 0, GCornerNone);
 }
-
+ 
 static void draw_drops(GContext *ctx, GPoint c, GColor color) {
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 2);
@@ -200,14 +203,14 @@ static void draw_drops(GContext *ctx, GPoint c, GColor color) {
     graphics_draw_line(ctx, GPoint(x, c.y + 11), GPoint(x - 2, c.y + 17));
   }
 }
-
+ 
 static void draw_flakes(GContext *ctx, GPoint c, GColor color) {
   graphics_context_set_fill_color(ctx, color);
   for (int i = -1; i <= 1; i++) {
     graphics_fill_circle(ctx, GPoint(c.x + i * 8, c.y + 14), 2);
   }
 }
-
+ 
 static void draw_bolt(GContext *ctx, GPoint c, GColor color) {
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 3);
@@ -215,7 +218,7 @@ static void draw_bolt(GContext *ctx, GPoint c, GColor color) {
   graphics_draw_line(ctx, GPoint(c.x - 3, c.y + 15), GPoint(c.x + 1, c.y + 15));
   graphics_draw_line(ctx, GPoint(c.x + 1, c.y + 15), GPoint(c.x - 4, c.y + 21));
 }
-
+ 
 static void draw_fog(GContext *ctx, GPoint c, GColor color) {
   graphics_context_set_stroke_color(ctx, color);
   graphics_context_set_stroke_width(ctx, 2);
@@ -224,7 +227,7 @@ static void draw_fog(GContext *ctx, GPoint c, GColor color) {
     graphics_draw_line(ctx, GPoint(c.x - 12, y), GPoint(c.x + 12, y));
   }
 }
-
+ 
 static void draw_weather_icon(GContext *ctx, int type, GPoint c) {
   switch (type) {
     case WX_CLEAR:
@@ -258,15 +261,15 @@ static void draw_weather_icon(GContext *ctx, int type, GPoint c) {
       break;
   }
 }
-
+ 
 /* ========================================================================= */
 /* Zeichnen                                                                  */
 /* ========================================================================= */
-
+ 
 static void canvas_update(Layer *layer, GContext *ctx) {
   GColor hour_col = GColorFromHEX(s_hour_hex);
   GColor min_col  = GColorFromHEX(s_min_hex);
-
+ 
   /* Zeit */
   graphics_context_set_text_color(ctx, hour_col);
   graphics_draw_text(ctx, s_hour, s_font_time,
@@ -274,7 +277,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_context_set_text_color(ctx, min_col);
   graphics_draw_text(ctx, s_min, s_font_time,
                      MIN_BOX, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-
+ 
   /* Datum */
   graphics_context_set_text_color(ctx, COLOR_DATE);
   graphics_draw_text(ctx, s_dow, fonts_get_system_font(FONT_DATE),
@@ -283,10 +286,10 @@ static void canvas_update(Layer *layer, GContext *ctx) {
                      DAY_BOX, GTextOverflowModeFill, GTextAlignmentLeft, NULL);
   graphics_draw_text(ctx, s_mon, fonts_get_system_font(FONT_DATE),
                      MON_BOX, GTextOverflowModeFill, GTextAlignmentLeft, NULL);
-
+ 
   /* Wetter-Icon + Temperaturen */
   draw_weather_icon(ctx, s_weather_icon, GPoint(ICON_CX, ICON_CY));
-
+ 
   if (s_have_weather) {
     graphics_context_set_text_color(ctx, COLOR_TEMP);
     graphics_draw_text(ctx, s_low, fonts_get_system_font(FONT_TEMP),
@@ -294,7 +297,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, s_high, fonts_get_system_font(FONT_TEMP),
                        HIGH_BOX, GTextOverflowModeFill, TEMP_ALIGN, NULL);
   }
-
+ 
   /* Schritte */
   graphics_context_set_text_color(ctx, COLOR_STEPS_LBL);
   graphics_draw_text(ctx, STEPS_TBL[s_lang], fonts_get_system_font(FONT_SLBL),
@@ -303,11 +306,11 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, s_steps, fonts_get_system_font(FONT_SVAL),
                      SVAL_BOX, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
-
+ 
 /* ========================================================================= */
 /* Daten aktualisieren                                                       */
 /* ========================================================================= */
-
+ 
 static int read_steps(void) {
 #if defined(PBL_HEALTH)
   HealthServiceAccessibilityMask m =
@@ -319,7 +322,7 @@ static int read_steps(void) {
 #endif
   return 0;
 }
-
+ 
 static void update_steps(void) {
   int steps = read_steps();
 #ifdef DEBUG_MODE
@@ -327,32 +330,32 @@ static void update_steps(void) {
 #endif
   snprintf(s_steps, sizeof(s_steps), "%d", steps);
 }
-
+ 
 static void update_clock(void) {
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
-
-  if (clock_is_24h_style()) {
+ 
+  if (s_hour_24) {
     strftime(s_hour, sizeof(s_hour), "%H", t);
   } else {
     strftime(s_hour, sizeof(s_hour), "%I", t);
   }
   strftime(s_min, sizeof(s_min), "%M", t);
-
+ 
   snprintf(s_dow, sizeof(s_dow), "%s", DOW_TBL[s_lang][t->tm_wday]);
   snprintf(s_day, sizeof(s_day), "%02d", t->tm_mday);
   snprintf(s_mon, sizeof(s_mon), "%s", MON_TBL[s_lang][t->tm_mon]);
 }
-
+ 
 static void format_temps(void) {
   snprintf(s_low,  sizeof(s_low),  "%d\u00B0", s_weather_low);
   snprintf(s_high, sizeof(s_high), "%d\u00B0", s_weather_high);
 }
-
+ 
 /* ========================================================================= */
 /* AppMessage                                                                */
 /* ========================================================================= */
-
+ 
 static void request_weather(void) {
   DictionaryIterator *iter;
   if (app_message_outbox_begin(&iter) == APP_MSG_OK) {
@@ -360,12 +363,12 @@ static void request_weather(void) {
     app_message_outbox_send();
   }
 }
-
+ 
 static void inbox_received(DictionaryIterator *iter, void *context) {
   bool dirty = false;
   bool relang = false;
   Tuple *t;
-
+ 
   t = dict_find(iter, MESSAGE_KEY_WEATHER_ICON);
   if (t) {
     s_weather_icon = (int)t->value->int32;
@@ -414,7 +417,14 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
     relang = true;
     dirty = true;
   }
-
+  t = dict_find(iter, MESSAGE_KEY_HOUR_24);
+  if (t) {
+    s_hour_24 = (t->value->int32 != 0);
+    persist_write_bool(PK_H24, s_hour_24);
+    relang = true;
+    dirty = true;
+  }
+ 
   if (relang) {
     update_clock();
   }
@@ -423,29 +433,29 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
     layer_mark_dirty(s_canvas);
   }
 }
-
+ 
 /* ========================================================================= */
 /* Services                                                                  */
 /* ========================================================================= */
-
+ 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_clock();
   update_steps();
-
+ 
 #ifdef DEBUG_MODE
   s_weather_icon = (s_weather_icon + 1) % WX_COUNT;
   s_weather_high = -23;
   s_have_weather = true;
   format_temps();
 #endif
-
+ 
   layer_mark_dirty(s_canvas);
-
+ 
   if ((units_changed & MINUTE_UNIT) && (tick_time->tm_min % 30 == 0)) {
     request_weather();
   }
 }
-
+ 
 #if defined(PBL_HEALTH)
 static void health_handler(HealthEventType event, void *context) {
   if (event == HealthEventMovementUpdate || event == HealthEventSignificantUpdate) {
@@ -454,17 +464,17 @@ static void health_handler(HealthEventType event, void *context) {
   }
 }
 #endif
-
+ 
 static void bt_handler(bool connected) {
   if (connected) {
     request_weather();
   }
 }
-
+ 
 /* ========================================================================= */
 /* Window                                                                    */
 /* ========================================================================= */
-
+ 
 static void window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(root);
@@ -472,11 +482,11 @@ static void window_load(Window *window) {
   layer_set_update_proc(s_canvas, canvas_update);
   layer_add_child(root, s_canvas);
 }
-
+ 
 static void window_unload(Window *window) {
   layer_destroy(s_canvas);
 }
-
+ 
 static void init(void) {
   /* Persistenz laden */
   s_weather_icon = persist_exists(PK_ICON) ? persist_read_int(PK_ICON) : WX_PARTLY;
@@ -485,17 +495,18 @@ static void init(void) {
   s_have_weather = persist_exists(PK_HIGH);
   s_hour_hex     = persist_exists(PK_HCOL) ? persist_read_int(PK_HCOL) : DEFAULT_HOUR_HEX;
   s_min_hex      = persist_exists(PK_MCOL) ? persist_read_int(PK_MCOL) : DEFAULT_MIN_HEX;
-  s_lang         = persist_exists(PK_LANG) ? persist_read_int(PK_LANG) : LANG_EN;
+  s_lang         = persist_exists(PK_LANG) ? persist_read_int(PK_LANG)   : LANG_EN;
   if (s_lang < 0 || s_lang >= LANG_COUNT) {
     s_lang = LANG_EN;
   }
-
+  s_hour_24      = persist_exists(PK_H24) ? persist_read_bool(PK_H24)   : true;
+ 
   s_font_time = fonts_load_custom_font(resource_get_handle(RES_TIME));
-
+ 
   update_clock();
   update_steps();
   format_temps();
-
+ 
   s_window = window_create();
   window_set_background_color(s_window, COLOR_BG);
   window_set_window_handlers(s_window, (WindowHandlers){
@@ -503,25 +514,25 @@ static void init(void) {
     .unload = window_unload,
   });
   window_stack_push(s_window, true);
-
+ 
   app_message_register_inbox_received(inbox_received);
   app_message_open(128, 64);
-
+ 
 #if defined(PBL_HEALTH)
   health_service_events_subscribe(health_handler, NULL);
 #endif
-
+ 
   connection_service_subscribe((ConnectionHandlers){
     .pebble_app_connection_handler = bt_handler
   });
-
+ 
 #ifdef DEBUG_MODE
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 #else
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 #endif
 }
-
+ 
 static void deinit(void) {
   fonts_unload_custom_font(s_font_time);
   tick_timer_service_unsubscribe();
@@ -531,7 +542,7 @@ static void deinit(void) {
 #endif
   window_destroy(s_window);
 }
-
+ 
 int main(void) {
   init();
   app_event_loop();

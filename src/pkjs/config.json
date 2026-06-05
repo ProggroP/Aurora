@@ -21,6 +21,12 @@
           { "label": "Italiano", "value": 4 },
           { "label": "Nederlands", "value": 5 }
         ]
+      },
+      {
+        "type": "toggle",
+        "messageKey": "HOUR_24",
+        "label": "24-hour time",
+        "defaultValue": true
       }
     ]
   },
