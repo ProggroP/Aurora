@@ -47,6 +47,12 @@
         "label": "Minutes",
         "defaultValue": "0x00FFAA",
         "sunlight": false
+      },
+      {
+        "type": "toggle",
+        "messageKey": "INVERT",
+        "label": "Invert background",
+        "defaultValue": false
       }
     ]
   },

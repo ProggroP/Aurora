@@ -16,12 +16,12 @@
 // #define DEBUG_MODE 
 
 /* ---------- COLORS ---------- */
-#define COLOR_BG        GColorBlack
-#define COLOR_DATE      GColorWhite
-#define COLOR_ICON      GColorWhite
-#define COLOR_TEMP      GColorWhite
-#define COLOR_STEPS_LBL GColorWhite
-#define COLOR_STEPS_VAL GColorWhite
+/* Statische Hintergrundfarbe wird zur Laufzeit durch s_invert gesteuert.
+ * Stunden- und Minutenfarbe bleiben immer unveraendert (per Clay). */
+#define COLOR_BG_NORMAL GColorBlack
+#define COLOR_BG_INVERT GColorWhite
+#define COLOR_FG_NORMAL GColorWhite
+#define COLOR_FG_INVERT GColorBlack
 
 /* Default-Farben (per Clay konfigurierbar) */
 #define DEFAULT_HOUR_HEX 0xFFFFFF        /* weiss */
@@ -111,6 +111,7 @@
 #define PK_MCOL 5
 #define PK_LANG 6
 #define PK_H24  7
+#define PK_INV  8
  
 /* ---------- STATE ---------- */
 static Window  *s_window;
@@ -133,8 +134,9 @@ static bool s_have_weather = false;
 static int  s_hour_hex = DEFAULT_HOUR_HEX;
 static int  s_min_hex  = DEFAULT_MIN_HEX;
  
-static int  s_lang = LANG_EN;
+static int  s_lang    = LANG_EN;
 static bool s_hour_24 = true;
+static bool s_invert  = false;
  
 static GFont s_font_time;
  
@@ -167,6 +169,11 @@ static const char *STEPS_TBL[LANG_COUNT] = {
   "Passi",     /* IT */
   "Stappen",   /* NL */
 };
+
+/* ---------- Hilfsfunktion: Vordergrundfarbe je Invert-Zustand ---------- */
+static GColor fg_color(void) {
+  return s_invert ? COLOR_FG_INVERT : COLOR_FG_NORMAL;
+}
  
 /* ========================================================================= */
 /* Wetter-Icons (rein gezeichnet, keine Bitmap-Ressourcen)                   */
@@ -229,35 +236,36 @@ static void draw_fog(GContext *ctx, GPoint c, GColor color) {
 }
  
 static void draw_weather_icon(GContext *ctx, int type, GPoint c) {
+  GColor icon_col = fg_color();
   switch (type) {
     case WX_CLEAR:
-      draw_sun(ctx, c, 9, COLOR_ICON);
+      draw_sun(ctx, c, 9, icon_col);
       break;
     case WX_PARTLY:
-      draw_sun(ctx, GPoint(c.x - 7, c.y - 7), 7, COLOR_ICON);
-      draw_cloud(ctx, GPoint(c.x + 3, c.y + 5), COLOR_ICON);
+      draw_sun(ctx, GPoint(c.x - 7, c.y - 7), 7, icon_col);
+      draw_cloud(ctx, GPoint(c.x + 3, c.y + 5), icon_col);
       break;
     case WX_CLOUD:
-      draw_cloud(ctx, c, COLOR_ICON);
+      draw_cloud(ctx, c, icon_col);
       break;
     case WX_RAIN:
-      draw_cloud(ctx, GPoint(c.x, c.y - 4), COLOR_ICON);
-      draw_drops(ctx, GPoint(c.x, c.y - 4), COLOR_ICON);
+      draw_cloud(ctx, GPoint(c.x, c.y - 4), icon_col);
+      draw_drops(ctx, GPoint(c.x, c.y - 4), icon_col);
       break;
     case WX_SNOW:
-      draw_cloud(ctx, GPoint(c.x, c.y - 4), COLOR_ICON);
-      draw_flakes(ctx, GPoint(c.x, c.y - 4), COLOR_ICON);
+      draw_cloud(ctx, GPoint(c.x, c.y - 4), icon_col);
+      draw_flakes(ctx, GPoint(c.x, c.y - 4), icon_col);
       break;
     case WX_THUNDER:
-      draw_cloud(ctx, GPoint(c.x, c.y - 4), COLOR_ICON);
+      draw_cloud(ctx, GPoint(c.x, c.y - 4), icon_col);
       draw_bolt(ctx, GPoint(c.x, c.y - 4), GColorYellow);
       break;
     case WX_FOG:
-      draw_cloud(ctx, GPoint(c.x, c.y - 6), COLOR_ICON);
-      draw_fog(ctx, GPoint(c.x, c.y - 6), COLOR_ICON);
+      draw_cloud(ctx, GPoint(c.x, c.y - 6), icon_col);
+      draw_fog(ctx, GPoint(c.x, c.y - 6), icon_col);
       break;
     default:
-      draw_cloud(ctx, c, COLOR_ICON);
+      draw_cloud(ctx, c, icon_col);
       break;
   }
 }
@@ -269,7 +277,8 @@ static void draw_weather_icon(GContext *ctx, int type, GPoint c) {
 static void canvas_update(Layer *layer, GContext *ctx) {
   GColor hour_col = GColorFromHEX(s_hour_hex);
   GColor min_col  = GColorFromHEX(s_min_hex);
- 
+  GColor fg       = fg_color();
+
   /* Zeit */
   graphics_context_set_text_color(ctx, hour_col);
   graphics_draw_text(ctx, s_hour, s_font_time,
@@ -279,7 +288,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
                      MIN_BOX, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
  
   /* Datum */
-  graphics_context_set_text_color(ctx, COLOR_DATE);
+  graphics_context_set_text_color(ctx, fg);
   graphics_draw_text(ctx, s_dow, fonts_get_system_font(FONT_DATE),
                      DOW_BOX, GTextOverflowModeFill, GTextAlignmentLeft, NULL);
   graphics_draw_text(ctx, s_day, fonts_get_system_font(FONT_DATE),
@@ -291,7 +300,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   draw_weather_icon(ctx, s_weather_icon, GPoint(ICON_CX, ICON_CY));
  
   if (s_have_weather) {
-    graphics_context_set_text_color(ctx, COLOR_TEMP);
+    graphics_context_set_text_color(ctx, fg);
     graphics_draw_text(ctx, s_low, fonts_get_system_font(FONT_TEMP),
                        LOW_BOX, GTextOverflowModeFill, TEMP_ALIGN, NULL);
     graphics_draw_text(ctx, s_high, fonts_get_system_font(FONT_TEMP),
@@ -299,10 +308,9 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   }
  
   /* Schritte */
-  graphics_context_set_text_color(ctx, COLOR_STEPS_LBL);
+  graphics_context_set_text_color(ctx, fg);
   graphics_draw_text(ctx, STEPS_TBL[s_lang], fonts_get_system_font(FONT_SLBL),
                      SLBL_BOX, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-  graphics_context_set_text_color(ctx, COLOR_STEPS_VAL);
   graphics_draw_text(ctx, s_steps, fonts_get_system_font(FONT_SVAL),
                      SVAL_BOX, GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
@@ -350,6 +358,13 @@ static void update_clock(void) {
 static void format_temps(void) {
   snprintf(s_low,  sizeof(s_low),  "%d\u00B0", s_weather_low);
   snprintf(s_high, sizeof(s_high), "%d\u00B0", s_weather_high);
+}
+
+/* Hintergrundfarbe am Window setzen und Canvas neu zeichnen */
+static void apply_invert(void) {
+  window_set_background_color(s_window,
+    s_invert ? COLOR_BG_INVERT : COLOR_BG_NORMAL);
+  layer_mark_dirty(s_canvas);
 }
  
 /* ========================================================================= */
@@ -424,7 +439,21 @@ static void inbox_received(DictionaryIterator *iter, void *context) {
     relang = true;
     dirty = true;
   }
- 
+  t = dict_find(iter, MESSAGE_KEY_INVERT);
+  if (t) {
+    bool inv;
+    if (t->type == TUPLE_CSTRING) {
+      inv = (atoi(t->value->cstring) != 0);
+    } else {
+      inv = (t->value->int32 != 0);
+    }
+    s_invert = inv;
+    persist_write_bool(PK_INV, s_invert);
+    apply_invert();
+    /* apply_invert ruft layer_mark_dirty auf, dirty-Flag reicht */
+    dirty = false;
+  }
+
   if (relang) {
     update_clock();
   }
@@ -499,7 +528,8 @@ static void init(void) {
   if (s_lang < 0 || s_lang >= LANG_COUNT) {
     s_lang = LANG_EN;
   }
-  s_hour_24      = persist_exists(PK_H24) ? persist_read_bool(PK_H24)   : true;
+  s_hour_24 = persist_exists(PK_H24) ? persist_read_bool(PK_H24) : true;
+  s_invert  = persist_exists(PK_INV) ? persist_read_bool(PK_INV) : false;
  
   s_font_time = fonts_load_custom_font(resource_get_handle(RES_TIME));
  
@@ -508,7 +538,8 @@ static void init(void) {
   format_temps();
  
   s_window = window_create();
-  window_set_background_color(s_window, COLOR_BG);
+  window_set_background_color(s_window,
+    s_invert ? COLOR_BG_INVERT : COLOR_BG_NORMAL);
   window_set_window_handlers(s_window, (WindowHandlers){
     .load = window_load,
     .unload = window_unload,
